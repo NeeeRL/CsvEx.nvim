@@ -14,11 +14,14 @@ M.sys = {
 }
 
 M.user = {
-  -- insert or normal
+  -- normal or insert
   initial_mode = "normal",
+  -- true or false
   insert_enter_to_save = false,
   -- bottom or top
   bar_position = "bottom",
+  -- true or false
+  auto_attach = false,
 }
 
 return M
