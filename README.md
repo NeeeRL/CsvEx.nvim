@@ -34,3 +34,7 @@ return {
   bar_position = "bottom",
 ```
 
+## Thanks
+CsvViewer.nvimのコードを一部参考にさせていただきました。ありがとうございました。
+
+https://github.com/hat0uma/csvview.nvim
