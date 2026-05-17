@@ -82,11 +82,15 @@ function M.attach(bufnr)
     end,
   })
 
-  vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
-    buffer = bufnr,
-    callback = function()
-      metrics.compute_all(bufnr, parser)
-      view.update_winbar()
+  vim.api.nvim_buf_attach(bufnr, false, {
+    on_lines = function(_, _, _, firstline, lastline, new_lastline)
+      metrics.update_delta(bufnr, parser, firstline, lastline, new_lastline)
+
+      vim.schedule(function()
+        if vim.api.nvim_buf_is_valid(bufnr) then
+          view.update_winbar()
+        end
+      end)
     end,
   })
 end
