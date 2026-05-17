@@ -7,7 +7,7 @@ local function setup_highlights(opts)
   vim.api.nvim_set_hl(0, "CsvexSeparator", { link = "FloatBorder", default = true })
   vim.api.nvim_set_hl(0, "CsvexBorder", { link = "FloatBorder", default = true })
   vim.api.nvim_set_hl(0, "CsvexFormulaBar", { link = "NormalFloat", default = true })
-
+  vim.api.nvim_set_hl(0, "CsvexCursorLine", { link = "CursorLine", default = true })
   for hl_name, hl_settings in pairs(user_highlights) do
     vim.api.nvim_set_hl(0, hl_name, hl_settings)
   end

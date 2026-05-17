@@ -11,6 +11,7 @@ M.sys = {
   wrap = false,
   cursorline = true,
   virtualedit = "onemore",
+  winhighlight = "CursorLine:CsvexCursorLine",
 }
 
 M.user = {
@@ -22,6 +23,8 @@ M.user = {
   bar_position = "bottom",
   -- true or false
   auto_attach = false,
+  -- true or false
+  enable_crosshair = false,
 }
 
 return M

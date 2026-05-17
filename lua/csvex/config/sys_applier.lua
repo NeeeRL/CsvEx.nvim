@@ -16,6 +16,7 @@ function M.apply_to_buffer(bufnr, sys_options)
         wrap = vim.wo[winid].wrap,
         cursorline = vim.wo[winid].cursorline,
         virtualedit = vim.wo[winid].virtualedit,
+        winhighlight = vim.wo[winid].winhighlight,
       }
     end
 
@@ -27,6 +28,7 @@ function M.apply_to_buffer(bufnr, sys_options)
     vim.wo[winid].wrap = sys_options.wrap
     vim.wo[winid].cursorline = sys_options.cursorline
     vim.wo[winid].virtualedit = sys_options.virtualedit
+    vim.wo[winid].winhighlight = sys_options.winhighlight
   end
 
   local function restore(winid)
@@ -40,6 +42,7 @@ function M.apply_to_buffer(bufnr, sys_options)
       vim.wo[winid].wrap = opts.wrap
       vim.wo[winid].cursorline = opts.cursorline
       vim.wo[winid].virtualedit = opts.virtualedit
+      vim.wo[winid].winhighlight = opts.winhighlight
       saved_opts[winid] = nil
     end
   end
