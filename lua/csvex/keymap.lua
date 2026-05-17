@@ -16,6 +16,13 @@ function M.setup_keys()
   opts.desc = "Jump to CSV cell above"
   vim.keymap.set("n", "k", actions.jump_up_cell, opts)
 
+  opts.nowait = false
+  opts.desc = "Edit cell (prevents virtualedit space injection)"
+  vim.keymap.set("n", "i", actions.edit_cell, opts)
+  vim.keymap.set("n", "a", actions.edit_cell, opts)
+  vim.keymap.set("n", "I", actions.edit_cell, opts)
+  vim.keymap.set("n", "A", actions.edit_cell, opts)
+
   -- enter -> edit
   opts.desc = "Edit current CSV cell"
   vim.keymap.set("n", "<CR>", actions.edit_cell, opts)
