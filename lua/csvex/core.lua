@@ -61,22 +61,24 @@ function M.attach(bufnr)
     callback = function()
       view.update_winbar()
 
-      local current_line = vim.fn.line(".")
-      local last_line = vim.fn.line("$")
-      local win_height = vim.fn.winheight(0)
-      local cursor_winline = vim.fn.winline()
+      vim.schedule(function()
+        local current_line = vim.fn.line(".")
+        local last_line = vim.fn.line("$")
+        local win_height = vim.fn.winheight(0)
+        local cursor_winline = vim.fn.winline()
 
-      if current_line == 1 then
-        local view_opt = vim.fn.winsaveview()
-        if view_opt.topline > 1 or cursor_winline == 1 then
-          vim.fn.winrestview({ topline = 1 })
-          vim.cmd([[execute "normal! \<C-y>\<C-y>\<C-y>"]])
+        if current_line == 1 then
+          local view_opt = vim.fn.winsaveview()
+          if view_opt.topline > 1 or cursor_winline == 1 then
+            vim.fn.winrestview({ topline = 1 })
+            vim.cmd([[execute "normal! \<C-y>\<C-y>\<C-y>"]])
+          end
+        elseif current_line == last_line then
+          if last_line > win_height and cursor_winline >= win_height then
+            vim.cmd([[execute "normal! \<C-e>"]])
+          end
         end
-      elseif current_line == last_line then
-        if last_line > win_height and cursor_winline >= win_height then
-          vim.cmd([[execute "normal! \<C-e>"]])
-        end
-      end
+      end)
     end,
   })
 

@@ -1,6 +1,5 @@
 local M = {}
 local actions = require("csvex.actions")
-local cfg = require("csvex.config").get()
 
 function M.render_line(bufnr, lnum, fields, ns_id, max_widths, leftcol)
   max_widths = max_widths or {}
@@ -26,8 +25,6 @@ function M.render_line(bufnr, lnum, fields, ns_id, max_widths, leftcol)
     virt_text_pos = "inline",
   })
 
-  local _, active_col_idx = actions.get_current_field()
-
   for i, field in ipairs(fields) do
     local start_pos = field.start - 1
     local end_pos = start_pos + #field.text
@@ -38,27 +35,14 @@ function M.render_line(bufnr, lnum, fields, ns_id, max_widths, leftcol)
 
     local dashes = string.rep("─", target_width)
 
-    local is_active_col = cfg.enable_crosshair and (i == active_col_idx)
-
-    if is_active_col and #field.text > 0 then
-      vim.api.nvim_buf_set_extmark(bufnr, ns_id, lnum, start_pos, {
-        end_col = end_pos,
-        hl_group = "CursorColumn",
-        hl_mode = "combine",
-      })
-    end
-
-    local pad_hl = is_active_col and "CursorColumn" or "CsvexSeparator"
-
     if i < #fields then
       local join_cross = (lnum == last_lnum) and "─┴─" or "─┼─"
       full_border = full_border .. dashes .. join_cross
       full_top_border = full_top_border .. dashes .. "─┬─"
 
       vim.api.nvim_buf_set_extmark(bufnr, ns_id, lnum, end_pos, {
-        virt_text = { { padding .. " ", pad_hl } },
+        virt_text = { { padding .. " ", "CsvexSeparator" } },
         virt_text_pos = "inline",
-        right_gravity = false,
       })
 
       vim.api.nvim_buf_set_extmark(bufnr, ns_id, lnum, end_pos, {
@@ -77,9 +61,8 @@ function M.render_line(bufnr, lnum, fields, ns_id, max_widths, leftcol)
       full_top_border = full_top_border .. dashes .. "─┐"
 
       vim.api.nvim_buf_set_extmark(bufnr, ns_id, lnum, end_pos, {
-        virt_text = { { padding, pad_hl }, { " │", "CsvexSeparator" } },
+        virt_text = { { padding, "CsvexSeparator" }, { " │", "CsvexSeparator" } },
         virt_text_pos = "inline",
-        right_gravity = false,
       })
     end
   end
@@ -108,7 +91,17 @@ function M.update_winbar()
     local textoff = wininfo and wininfo.textoff or 0
     local padding = string.rep(" ", textoff)
 
-    local bar_text = string.format("%s%%#CsvexSeparator# Col %d: %%#Normal# %s ", padding, idx, field.text)
+    local header_text = ""
+    local metrics = require("csvex.metrics")
+    if metrics.row_cache[0] and metrics.row_cache[0][idx] then -- 0-indexed
+      local h_field = metrics.row_cache[0][idx]
+      if h_field.text and h_field.text ~= "" and h_field.text ~= "  " then
+        header_text = string.format(" (%s)", vim.trim(h_field.text))
+      end
+    end
+
+    local bar_text =
+      string.format("%s%%#CsvexSeparator# Cell %d%s: %%#Normal# %s ", padding, idx, header_text, field.text)
     vim.wo.winbar = bar_text
   else
     vim.wo.winbar = ""

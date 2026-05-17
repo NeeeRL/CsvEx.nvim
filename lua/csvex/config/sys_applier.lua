@@ -28,7 +28,9 @@ function M.apply_to_buffer(bufnr, sys_options)
     vim.wo[winid].wrap = sys_options.wrap
     vim.wo[winid].cursorline = sys_options.cursorline
     vim.wo[winid].virtualedit = sys_options.virtualedit
-    vim.wo[winid].winhighlight = sys_options.winhighlight
+    if sys_options.winhighlight then
+      vim.wo[winid].winhighlight = sys_options.winhighlight
+    end
   end
 
   local function restore(winid)
@@ -42,17 +44,18 @@ function M.apply_to_buffer(bufnr, sys_options)
       vim.wo[winid].wrap = opts.wrap
       vim.wo[winid].cursorline = opts.cursorline
       vim.wo[winid].virtualedit = opts.virtualedit
-      vim.wo[winid].winhighlight = opts.winhighlight
+      if opts.winhighlight then
+        vim.wo[winid].winhighlight = opts.winhighlight
+      end
       saved_opts[winid] = nil
     end
   end
 
-  local current_win = vim.api.nvim_get_current_win()
-  if vim.api.nvim_win_get_buf(current_win) == bufnr then
-    apply(current_win)
+  for _, winid in ipairs(vim.fn.win_findbuf(bufnr)) do
+    apply(winid)
   end
 
-  vim.api.nvim_create_autocmd("BufEnter", {
+  vim.api.nvim_create_autocmd("BufWinEnter", {
     group = group,
     buffer = bufnr,
     callback = function()
@@ -60,7 +63,7 @@ function M.apply_to_buffer(bufnr, sys_options)
     end,
   })
 
-  vim.api.nvim_create_autocmd("BufLeave", {
+  vim.api.nvim_create_autocmd("BufWinLeave", {
     group = group,
     buffer = bufnr,
     callback = function()
