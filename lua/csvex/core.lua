@@ -115,6 +115,70 @@ function M.attach(bufnr)
       end)
     end,
   })
+
+  vim.api.nvim_create_autocmd("BufWriteCmd", {
+    buffer = bufnr,
+    callback = function(args)
+      local filepath = args.match
+      if filepath == "" then
+        vim.notify("E32: No file name", vim.log.levels.ERROR)
+        return
+      end
+
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      local clean_lines = {}
+
+      for _, line in ipairs(lines) do
+        local fields = parser.parse_line(line)
+        local mapped_fields = {}
+
+        for _, field in ipairs(fields) do
+          local text = field.text
+
+          if text:sub(1, 1) == '"' and text:sub(-1, -1) == '"' then
+            text = text:sub(2, -2)
+          end
+
+          if text == "  " or text == "  " or text == "  " then
+            table.insert(mapped_fields, "")
+          else
+            table.insert(mapped_fields, field.text)
+          end
+        end
+
+        local clean_line = table.concat(mapped_fields, ",")
+        table.insert(clean_lines, clean_line)
+      end
+
+      local f, err = io.open(filepath, "w")
+      if not f then
+        vim.notify("CSV Save failed (io.open): " .. tostring(err), vim.log.levels.ERROR)
+        return
+      end
+
+      local content = table.concat(clean_lines, "\n")
+      if #clean_lines > 0 and clean_lines[#clean_lines] ~= "" then
+        content = content .. "\n"
+      end
+
+      f:write(content)
+      f:close()
+
+      vim.bo[bufnr].modified = false
+
+      vim.api.nvim_exec_autocmds("BufWritePost", { buffer = bufnr, modeline = false })
+
+      vim.notify(
+        string.format(
+          '"%s" %dL, %dB written (Pure data format)',
+          vim.fn.fnamemodify(filepath, ":t"),
+          #clean_lines,
+          #content
+        ),
+        vim.log.levels.INFO
+      )
+    end,
+  })
 end
 
 return M
