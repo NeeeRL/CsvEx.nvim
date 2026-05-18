@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request: ~
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+jobs:
+  stylua:
+    name: Check and Format Lua
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run StyLua
+        uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: ${{ github.event_name == 'push' && './lua ./plugin' || '--check ./lua ./plugin' }}
+
+      - name: Auto-commit formatting changes
+        if: ${{ github.event_name == 'push' }}
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "style(format): fix code style"
+
+  selene:
+    name: Lint code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Selene check
+        uses: NTBBloodbath/selene-action@v1.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --color always ./lua ./plugin
