@@ -18,8 +18,11 @@ local function force_render_current_view(bufnr)
   local leftcol = vim.fn.winsaveview().leftcol
   local start_row = math.max(0, toprow - 1)
 
-  vim.api.nvim_buf_clear_namespace(bufnr, ns_id, start_row, botrow + 1)
+  vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+  vim.wait(0)
   for lnum = start_row, botrow do
+    vim.api.nvim_buf_clear_namespace(bufnr, ns_id, lnum, lnum + 1)
+
     local line = vim.api.nvim_buf_get_lines(bufnr, lnum, lnum + 1, false)[1]
     if line then
       local fields = parser.parse_line(line)
@@ -28,18 +31,55 @@ local function force_render_current_view(bufnr)
   end
 end
 
+M.force_render = force_render_current_view
+
 function M.attach(bufnr)
   if vim.b[bufnr].csvex_attached then
     return
   end
   vim.b[bufnr].csvex_attached = true
 
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local padded_lines = {}
+  local has_empty_cells = false
+
+  for _, line in ipairs(lines) do
+    local fields = parser.parse_line(line)
+    local mapped_fields = {}
+    for _, field in ipairs(fields) do
+      if field.text == "" then
+        table.insert(mapped_fields, "  ")
+        has_empty_cells = true
+      else
+        table.insert(mapped_fields, field.text)
+      end
+    end
+    table.insert(padded_lines, table.concat(mapped_fields, ","))
+  end
+
+  if has_empty_cells then
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, padded_lines)
+    vim.bo[bufnr].modified = false -- バッファ書き換えによる未保存状態をリセット
+  end
+
   vim.api.nvim_buf_call(bufnr, function()
     keymap.setup_keys()
     vim.opt_local.virtualedit = "all"
+    vim.opt_local.list = false
   end)
 
+  vim.b[bufnr].miniindentscope_disable = true
+  vim.b[bufnr].snacks_indent = false
+  vim.b[bufnr].indent_blankline_enabled = false
+
+  local ok, ibl = pcall(require, "ibl")
+  if ok and type(ibl.setup_buffer) == "function" then
+    pcall(ibl.setup_buffer, bufnr, { enabled = false })
+  end
+
   require("csvex.config.sys_applier").apply_to_buffer(bufnr, require("csvex.config.defaults").sys)
+
+  parser.normalize_buffer(bufnr)
 
   metrics.compute_all(bufnr, parser)
 
@@ -125,13 +165,22 @@ function M.attach(bufnr)
         return
       end
 
-      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
       local clean_lines = {}
+      local metrics = require("csvex.metrics")
+      local last_lnum = vim.api.nvim_buf_line_count(bufnr) - 1
 
-      for _, line in ipairs(lines) do
-        local fields = parser.parse_line(line)
+      for lnum = 0, last_lnum do
+        vim.api.nvim_buf_clear_namespace(bufnr, ns_id, lnum, lnum + 1)
+        -- すでに計算済みのキャッシュを利用して重いパース処理をスキップ
+        local fields = metrics.row_cache[lnum]
+
+        -- 万が一キャッシュがない場合のみパースする
+        if not fields then
+          local line = vim.api.nvim_buf_get_lines(bufnr, lnum, lnum + 1, false)[1] or ""
+          fields = parser.parse_line(line)
+        end
+
         local mapped_fields = {}
-
         for _, field in ipairs(fields) do
           local text = field.text
 
@@ -142,12 +191,12 @@ function M.attach(bufnr)
           if text == "  " or text == "  " or text == "  " then
             table.insert(mapped_fields, "")
           else
-            table.insert(mapped_fields, field.text)
+            -- 修正: 処理後の text を挿入するように変更
+            table.insert(mapped_fields, text)
           end
         end
 
-        local clean_line = table.concat(mapped_fields, ",")
-        table.insert(clean_lines, clean_line)
+        table.insert(clean_lines, table.concat(mapped_fields, ","))
       end
 
       local f, err = io.open(filepath, "w")
@@ -165,7 +214,6 @@ function M.attach(bufnr)
       f:close()
 
       vim.bo[bufnr].modified = false
-
       vim.api.nvim_exec_autocmds("BufWritePost", { buffer = bufnr, modeline = false })
 
       vim.notify(

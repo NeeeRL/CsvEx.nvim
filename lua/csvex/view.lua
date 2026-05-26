@@ -23,6 +23,8 @@ function M.render_line(bufnr, lnum, fields, ns_id, max_widths, leftcol)
   vim.api.nvim_buf_set_extmark(bufnr, ns_id, lnum, 0, {
     virt_text = { { "│", "CsvexSeparator" }, { " ", "CsvexSeparator" } },
     virt_text_pos = "inline",
+    right_gravity = false,
+    priority = 200,
   })
 
   for i, field in ipairs(fields) do
