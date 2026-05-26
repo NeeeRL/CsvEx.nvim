@@ -127,13 +127,19 @@ function M.attach(bufnr)
           return
         end
         local current_line_idx = vim.fn.line(".")
+        local last_line_idx = vim.fn.line("$")
         local cursor_winline = vim.fn.winline()
+        local win_height = vim.fn.winheight(0)
 
         if current_line_idx == 1 then
           local view_opt = vim.fn.winsaveview()
           if view_opt.topline > 1 or cursor_winline == 1 then
             vim.fn.winrestview({ topline = 1 })
             vim.cmd([[execute "normal! \<C-y>\<C-y>\<C-y>"]])
+          end
+        elseif current_line_idx == last_line_idx then
+          if cursor_winline >= win_height - 1 then
+            vim.cmd([[execute "normal! \<C-e>\<C-e>\<C-e>"]])
           end
         end
       end)
