@@ -51,4 +51,37 @@ function M.parse_line(line, separator, quote_char)
   return fields
 end
 
+function M.normalize_buffer(bufnr)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local max_cols = 1
+  local parsed_rows = {}
+
+  for i, line in ipairs(lines) do
+    local fields = M.parse_line(line)
+    parsed_rows[i] = fields
+    if #fields > max_cols then
+      max_cols = #fields
+    end
+  end
+
+  local needs_update = false
+  local new_lines = {}
+
+  for i, fields in ipairs(parsed_rows) do
+    local diff = max_cols - #fields
+    if diff > 0 then
+      needs_update = true
+      local padding = string.rep(",  ", diff)
+      new_lines[i] = lines[i] .. padding
+    else
+      new_lines[i] = lines[i]
+    end
+  end
+
+  if needs_update then
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_lines)
+    require("csvex.metrics").compute_all(bufnr, M)
+  end
+end
+
 return M
