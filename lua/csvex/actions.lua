@@ -288,7 +288,6 @@ function M.delete_column()
 
   local main_buf = vim.api.nvim_get_current_buf()
   local last_lnum = vim.api.nvim_buf_line_count(main_buf) - 1
-  local metrics = require("csvex.metrics")
   local parser = require("csvex.parser")
   local new_lines = {}
 
@@ -345,7 +344,6 @@ function M.insert_column_right()
 
   local main_buf = vim.api.nvim_get_current_buf()
   local last_lnum = vim.api.nvim_buf_line_count(main_buf) - 1
-  local metrics = require("csvex.metrics")
   local parser = require("csvex.parser")
   local new_lines = {}
 
@@ -388,7 +386,6 @@ function M.insert_column_left()
 
   local main_buf = vim.api.nvim_get_current_buf()
   local last_lnum = vim.api.nvim_buf_line_count(main_buf) - 1
-  local metrics = require("csvex.metrics")
   local parser = require("csvex.parser")
   local new_lines = {}
 

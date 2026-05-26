@@ -166,7 +166,6 @@ function M.attach(bufnr)
       end
 
       local clean_lines = {}
-      local metrics = require("csvex.metrics")
       local last_lnum = vim.api.nvim_buf_line_count(bufnr) - 1
 
       for lnum = 0, last_lnum do
