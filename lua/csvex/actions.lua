@@ -280,4 +280,200 @@ function M.change_cell()
   M.edit_cell(true)
 end
 
+function M.delete_column()
+  local field, col_idx = M.get_current_field()
+  if not field or not col_idx then
+    return
+  end
+
+  local main_buf = vim.api.nvim_get_current_buf()
+  local last_lnum = vim.api.nvim_buf_line_count(main_buf) - 1
+  local metrics = require("csvex.metrics")
+  local parser = require("csvex.parser")
+  local new_lines = {}
+
+  -- 全行に対して対象列のデータを削除
+  for lnum = 0, last_lnum do
+    local row_data = metrics.row_cache[lnum]
+    if not row_data then
+      local line = vim.api.nvim_buf_get_lines(main_buf, lnum, lnum + 1, false)[1] or ""
+      row_data = parser.parse_line(line)
+    end
+
+    local new_fields = {}
+    for i, f in ipairs(row_data) do
+      if i ~= col_idx then
+        table.insert(new_fields, f.text)
+      end
+    end
+
+    -- 全ての列を削除してしまった場合は、最低1つの空セルを維持する
+    if #new_fields == 0 then
+      table.insert(new_fields, "  ")
+    end
+
+    table.insert(new_lines, table.concat(new_fields, ","))
+  end
+
+  -- バッファ全体を一度に書き換え
+  vim.api.nvim_buf_set_lines(main_buf, 0, -1, false, new_lines)
+
+  -- メトリクスを再計算して描画を更新
+  metrics.compute_all(main_buf, parser)
+  require("csvex.view").update_winbar()
+
+  -- バイト位置のズレを補正し、論理的な列インデックスにカーソルを復帰させる
+  vim.schedule(function()
+    local cur_lnum = vim.api.nvim_win_get_cursor(0)[1] - 1
+    local new_row_data = metrics.row_cache[cur_lnum]
+    if new_row_data then
+      -- 削除により列が減った場合、末尾の列に合わせる
+      local target_col_idx = math.min(col_idx, #new_row_data)
+      local target_field = new_row_data[target_col_idx]
+      if target_field then
+        vim.api.nvim_win_set_cursor(0, { cur_lnum + 1, math.max(0, target_field.start - 1) })
+      end
+    end
+  end)
+end
+
+function M.insert_column_right()
+  local field, col_idx = M.get_current_field()
+  if not col_idx then
+    return
+  end
+
+  local main_buf = vim.api.nvim_get_current_buf()
+  local last_lnum = vim.api.nvim_buf_line_count(main_buf) - 1
+  local metrics = require("csvex.metrics")
+  local parser = require("csvex.parser")
+  local new_lines = {}
+
+  for lnum = 0, last_lnum do
+    local row_data = metrics.row_cache[lnum]
+    if not row_data then
+      local line = vim.api.nvim_buf_get_lines(main_buf, lnum, lnum + 1, false)[1] or ""
+      row_data = parser.parse_line(line)
+    end
+
+    local new_fields = {}
+    for i, f in ipairs(row_data) do
+      table.insert(new_fields, f.text)
+      -- 現在の列の右に空セルを挿入
+      if i == col_idx then
+        table.insert(new_fields, "  ")
+      end
+    end
+    table.insert(new_lines, table.concat(new_fields, ","))
+  end
+
+  vim.api.nvim_buf_set_lines(main_buf, 0, -1, false, new_lines)
+  metrics.compute_all(main_buf, parser)
+  require("csvex.view").update_winbar()
+
+  vim.schedule(function()
+    local cur_lnum = vim.api.nvim_win_get_cursor(0)[1] - 1
+    local new_row_data = metrics.row_cache[cur_lnum]
+    if new_row_data and new_row_data[col_idx + 1] then
+      vim.api.nvim_win_set_cursor(0, { cur_lnum + 1, math.max(0, new_row_data[col_idx + 1].start - 1) })
+    end
+  end)
+end
+
+function M.insert_column_left()
+  local field, col_idx = M.get_current_field()
+  if not col_idx then
+    return
+  end
+
+  local main_buf = vim.api.nvim_get_current_buf()
+  local last_lnum = vim.api.nvim_buf_line_count(main_buf) - 1
+  local metrics = require("csvex.metrics")
+  local parser = require("csvex.parser")
+  local new_lines = {}
+
+  for lnum = 0, last_lnum do
+    local row_data = metrics.row_cache[lnum]
+    if not row_data then
+      local line = vim.api.nvim_buf_get_lines(main_buf, lnum, lnum + 1, false)[1] or ""
+      row_data = parser.parse_line(line)
+    end
+
+    local new_fields = {}
+    for i, f in ipairs(row_data) do
+      -- 現在の列の左に空セルを挿入
+      if i == col_idx then
+        table.insert(new_fields, "  ")
+      end
+      table.insert(new_fields, f.text)
+    end
+    table.insert(new_lines, table.concat(new_fields, ","))
+  end
+
+  vim.api.nvim_buf_set_lines(main_buf, 0, -1, false, new_lines)
+  metrics.compute_all(main_buf, parser)
+  require("csvex.view").update_winbar()
+
+  vim.schedule(function()
+    local cur_lnum = vim.api.nvim_win_get_cursor(0)[1] - 1
+    local new_row_data = metrics.row_cache[cur_lnum]
+    if new_row_data and new_row_data[col_idx] then
+      vim.api.nvim_win_set_cursor(0, { cur_lnum + 1, math.max(0, new_row_data[col_idx].start - 1) })
+    end
+  end)
+end
+
+function M.insert_row_below()
+  local lnum = vim.api.nvim_win_get_cursor(0)[1] - 1
+  local row_data = require("csvex.metrics").row_cache[lnum]
+
+  -- 現在の行の列数を取得（キャッシュがない場合は最低1列）
+  local col_count = row_data and #row_data or 1
+
+  -- 列数分の空セル "  " を用意してカンマで結合
+  local empty_fields = {}
+  for _ = 1, col_count do
+    table.insert(empty_fields, "  ")
+  end
+  local new_line = table.concat(empty_fields, ",")
+
+  local main_buf = vim.api.nvim_get_current_buf()
+
+  -- 下の行に挿入
+  vim.api.nvim_buf_set_lines(main_buf, lnum + 1, lnum + 1, false, { new_line })
+
+  require("csvex.metrics").compute_all(main_buf, require("csvex.parser"))
+  require("csvex.view").update_winbar()
+  require("csvex.core").force_render(main_buf)
+
+  vim.schedule(function()
+    vim.api.nvim_win_set_cursor(0, { lnum + 2, 0 })
+  end)
+end
+
+function M.insert_row_above()
+  local lnum = vim.api.nvim_win_get_cursor(0)[1] - 1
+  local row_data = require("csvex.metrics").row_cache[lnum]
+
+  local col_count = row_data and #row_data or 1
+
+  local empty_fields = {}
+  for _ = 1, col_count do
+    table.insert(empty_fields, "  ")
+  end
+  local new_line = table.concat(empty_fields, ",")
+
+  local main_buf = vim.api.nvim_get_current_buf()
+
+  -- 上の行に挿入
+  vim.api.nvim_buf_set_lines(main_buf, lnum, lnum, false, { new_line })
+
+  require("csvex.metrics").compute_all(main_buf, require("csvex.parser"))
+  require("csvex.view").update_winbar()
+
+  vim.schedule(function()
+    vim.api.nvim_win_set_cursor(0, { lnum + 1, 0 })
+  end)
+end
+
 return M

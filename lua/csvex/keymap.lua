@@ -23,6 +23,21 @@ function M.setup_keys()
   vim.keymap.set("n", "I", actions.edit_cell, opts)
   vim.keymap.set("n", "A", actions.edit_cell, opts)
 
+  opts.desc = "Insert row below"
+  opts.nowait = false
+  vim.keymap.set("n", "o", actions.insert_row_below, opts)
+
+  opts.desc = "Insert row above"
+  vim.keymap.set("n", "O", actions.insert_row_above, opts)
+
+  opts.desc = "Delete current column"
+  vim.keymap.set("n", "dc", actions.delete_column, opts)
+
+  opts.desc = "Insert column right"
+  vim.keymap.set("n", "ic", actions.insert_column_right, opts)
+
+  opts.desc = "Insert column left"
+  vim.keymap.set("n", "iC", actions.insert_column_left, opts)
   -- enter -> edit
   opts.desc = "Edit current CSV cell"
   vim.keymap.set("n", "<CR>", actions.edit_cell, opts)
