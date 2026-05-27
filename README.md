@@ -1,16 +1,19 @@
 # CsvEx.nvim
 
-A lightweight, powerful CSV viewer and editor for Neovim, designed to bring a spreadsheet-like experience to your favorite text editor.
+A lightweight, high-performance CSV viewer and editor for Neovim. CsvEx transforms your text editor into a powerful spreadsheet environment without sacrificing the "pure text" nature of your data.
+
+![Neovim](https://img.shields.io/badge/Neovim-0.10.0+-blue.svg?style=for-the-badge&logo=neovim)
+![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)
 
 ## Features
 
-- **Grid Visualization**: High-quality visual grid with customizable borders and separators.
-- **Formula Bar Editing**: Edit cell contents in a dedicated floating window (formula bar), keeping the main grid clean and readable.
-- **Smart Navigation**: Natural cell-to-cell movement using standard Vim keys (`h`, `j`, `k`, `l`).
-- **Dynamic Formatting**: Automatically adjusts column widths and aligns cells for optimal readability.
-- **Row & Column Management**: Effortlessly insert or delete rows and columns directly from the grid.
-- **Header Awareness**: Displays current cell index and column header in the winbar.
-- **Pure Data Format**: Saves CSV files in a clean, standard format without extra padding or artifacts.
+-   **Grid Visualization**: Beautifully rendered grid with customizable borders and separators using virtual text.
+-   **Formula Bar**: Edit cell contents in a dedicated floating window, keeping the main grid clean and readable.
+-   **Smart Navigation**: Move naturally between cells using standard Vim motions (`h`, `j`, `k`, `l`, `w`, `b`, etc.).
+-   **Dynamic Formatting**: Automatic column width adjustment and cell alignment for optimal readability.
+-   **Grid Management**: Effortlessly insert/delete rows and columns directly from the spreadsheet view.
+-   **Context Awareness**: The winbar displays your current cell index and column header for easy orientation.
+-   **Pure Data Format**: Your files remain standard CSVs. Padding and artifacts are only internal and are never saved to disk.
 
 ## Installation
 
@@ -21,8 +24,7 @@ A lightweight, powerful CSV viewer and editor for Neovim, designed to bring a sp
   "NeeeRL/CsvEx.nvim",
   ft = "csv",
   opts = {
-    -- Configuration options here (see below)
-    initial_mode = "normal", 
+    -- Your configuration here
     auto_attach = true,
   },
   config = function(_, opts)
@@ -31,12 +33,40 @@ A lightweight, powerful CSV viewer and editor for Neovim, designed to bring a sp
 }
 ```
 
+## Configuration
+
+CsvEx comes with sensible defaults. You can customize them in the `opts` table:
+
+| Option | Default | Description |
+| :--- | :--- | :--- |
+| `auto_attach` | `false` | Automatically activate CsvEx when opening a `.csv` file. |
+| `initial_mode` | `"normal"` | Initial mode in the formula bar (`"normal"` or `"insert"`). |
+| `insert_enter_to_save` | `false` | Save and close the formula bar when pressing `<CR>` in insert mode. |
+| `bar_position` | `"bottom"` | Position of the formula bar (`"bottom"` or `"top"`). |
+| `enable_crosshair` | `false` | Highlight the current row and column (crosshair effect). |
+
+### Customizing Highlights
+
+You can customize the appearance by overriding the default highlight groups:
+
+```lua
+opts = {
+  highlights = {
+    CsvexSeparator = { link = "FloatBorder" },    -- Vertical lines
+    CsvexBorder = { link = "FloatBorder" },       -- Horizontal borders
+    CsvexFormulaBar = { link = "NormalFloat" },   -- Formula bar content
+    CsvexCursorLine = { link = "CursorLine" },    -- Current cell highlight
+  },
+}
+```
+
 ## Default Keymaps
 
-When attached to a CSV buffer, CsvEx provides the following intuitive keybindings:
+When CsvEx is attached to a buffer, the following keymaps are active:
 
+### Navigation
 | Key | Action |
-| --- | --- |
+| :--- | :--- |
 | `h` / `b` | Move to previous cell |
 | `l` / `w` / `e` | Move to next cell |
 | `j` | Move to cell below |
@@ -45,9 +75,17 @@ When attached to a CSV buffer, CsvEx provides the following intuitive keybinding
 | `$` | Move to last cell in row |
 | `gg` | Move to top-left cell |
 | `G` | Move to bottom-left cell |
+
+### Editing
+| Key | Action |
+| :--- | :--- |
 | `i` / `a` / `I` / `A` / `<CR>` | Edit current cell (opens formula bar) |
-| `c` | Change current cell (clears and enters edit mode) |
-| `x` | Clear current cell |
+| `c` | Change current cell (clears and enters formula bar) |
+| `x` | Clear current cell content |
+
+### Grid Operations
+| Key | Action |
+| :--- | :--- |
 | `o` | Insert row below |
 | `O` | Insert row above |
 | `ic` | Insert column to the right |
@@ -55,42 +93,20 @@ When attached to a CSV buffer, CsvEx provides the following intuitive keybinding
 | `dc` | Delete current column |
 
 ### Formula Bar (Floating Window)
-- `<CR>`: Save and close.
-- `q`: Close without saving (or if unchanged).
-
-## Configuration
-
-| Option | Default | Description |
-| --- | --- | --- |
-| `initial_mode` | `"normal"` | Initial mode in the formula bar (`"normal"` or `"insert"`). |
-| `insert_enter_to_save` | `false` | If `true`, pressing `<CR>` in insert mode saves the cell. |
-| `bar_position` | `"bottom"` | Position of the formula bar (`"bottom"` or `"top"`). |
-| `auto_attach` | `false` | Automatically attach CsvEx when opening a `.csv` file. |
-| `enable_crosshair` | `false` | Enable crosshair (row and column highlights) at the current cell. |
-
-### Appearance (Highlights)
-
-You can customize the following highlight groups in your `opts`:
-
-```lua
-opts = {
-  highlights = {
-    CsvexSeparator = { fg = "#f5c2e7", bold = true },    -- Vertical lines
-    CsvexBorder = { fg = "#f5c2e7", bold = true },       -- Horizontal borders
-    CsvexFormulaBar = { bg = "#1e1e2e", fg = "#cdd6f4" }, -- Formula bar content
-    CsvexCursorLine = { link = "CursorLine" },           -- Current line highlight
-  },
-}
-```
+-   `<CR>`: Save changes and close window.
+-   `q`: Close window without saving (or if unchanged).
 
 ## Commands
 
-- `:CsvexAttach`: Manually attach CsvEx to the current buffer (must be a CSV file).
+-   `:CsvexAttach`: Manually attach CsvEx to the current buffer (useful if `auto_attach = false`).
 
-## Technical Notes
+## Technical Notes: Pure Data Format
 
-### Internal Representation
-To facilitate grid rendering and navigation, CsvEx temporarily inserts two spaces into empty cells while the buffer is attached. These spaces are **automatically removed** when saving the file, ensuring your data remains clean and standard-compliant (Pure Data Format).
+CsvEx is designed to be **non-destructive**. 
+
+Internally, Neovim requires content to exist in a buffer for the cursor to move over it. CsvEx handles empty cells by temporarily injecting two spaces while the buffer is attached. 
+
+**Crucially, these spaces are removed during the save process.** When you save a file (`:w`), CsvEx intercepts the write command and strips all internal padding, ensuring your CSV remains a standard-compliant, clean data file.
 
 ## Acknowledgments
 
@@ -98,4 +114,4 @@ To facilitate grid rendering and navigation, CsvEx temporarily inserts two space
 
 ---
 
-Developed by [ken](https://github.com/NeeeRL)
+Developed with by [ken](https://github.com/NeeeRL)
