@@ -6,9 +6,25 @@ function M.setup_keys()
 
   opts.desc = "Jump to next CSV cell"
   vim.keymap.set("n", "l", actions.jump_next_cell, opts)
+  vim.keymap.set("n", "w", actions.jump_next_cell, opts)
+  vim.keymap.set("n", "e", actions.jump_next_cell, opts)
 
   opts.desc = "Jump to previous CSV cell"
   vim.keymap.set("n", "h", actions.jump_prev_cell, opts)
+  vim.keymap.set("n", "b", actions.jump_prev_cell, opts)
+
+  opts.desc = "Jump to first CSV cell in row"
+  vim.keymap.set("n", "0", actions.jump_first_cell_in_row, opts)
+  vim.keymap.set("n", "^", actions.jump_first_cell_in_row, opts)
+
+  opts.desc = "Jump to last CSV cell in row"
+  vim.keymap.set("n", "$", actions.jump_last_cell_in_row, opts)
+
+  opts.desc = "Jump to top-left CSV cell"
+  vim.keymap.set("n", "gg", actions.jump_top_left_cell, opts)
+
+  opts.desc = "Jump to bottom-left CSV cell"
+  vim.keymap.set("n", "G", actions.jump_bottom_left_cell, opts)
 
   opts.desc = "Jump to CSV cell below"
   vim.keymap.set("n", "j", actions.jump_down_cell, opts)

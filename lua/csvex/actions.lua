@@ -77,6 +77,38 @@ function M.jump_up_cell()
     vim.api.nvim_win_set_cursor(0, { lnum, math.max(0, target_field.start - 1) })
   end
 end
+function M.jump_first_cell_in_row()
+  local lnum = vim.api.nvim_win_get_cursor(0)[1] - 1
+  local row_data = require("csvex.metrics").row_cache[lnum]
+  if row_data and row_data[1] then
+    vim.api.nvim_win_set_cursor(0, { lnum + 1, math.max(0, row_data[1].start - 1) })
+  end
+end
+
+function M.jump_last_cell_in_row()
+  local lnum = vim.api.nvim_win_get_cursor(0)[1] - 1
+  local row_data = require("csvex.metrics").row_cache[lnum]
+  if row_data and #row_data > 0 then
+    local last_field = row_data[#row_data]
+    vim.api.nvim_win_set_cursor(0, { lnum + 1, math.max(0, last_field.start - 1) })
+  end
+end
+
+function M.jump_top_left_cell()
+  local row_data = require("csvex.metrics").row_cache[0]
+  if row_data and row_data[1] then
+    vim.api.nvim_win_set_cursor(0, { 1, math.max(0, row_data[1].start - 1) })
+  end
+end
+
+function M.jump_bottom_left_cell()
+  local main_buf = vim.api.nvim_get_current_buf()
+  local last_lnum = vim.api.nvim_buf_line_count(main_buf) - 1
+  local row_data = require("csvex.metrics").row_cache[last_lnum]
+  if row_data and row_data[1] then
+    vim.api.nvim_win_set_cursor(0, { last_lnum + 1, math.max(0, row_data[1].start - 1) })
+  end
+end
 
 function M.clear_cell()
   local field, _ = M.get_current_field()
