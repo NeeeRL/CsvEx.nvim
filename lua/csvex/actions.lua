@@ -165,6 +165,8 @@ function M.edit_cell(isClearText)
   local initial_text = field.text
   if initial_text == "  " or isClearText then
     initial_text = ""
+  elseif initial_text:sub(1, 1) == '"' and initial_text:sub(-1, -1) == '"' then
+    initial_text = initial_text:sub(2, -2):gsub('""', '"')
   end
 
   vim.api.nvim_buf_set_lines(float_buf, 0, -1, false, { initial_text })
@@ -254,10 +256,13 @@ function M.edit_cell(isClearText)
   })
 
   local function save_and_close()
-    local new_text = vim.api.nvim_buf_get_lines(float_buf, 0, 1, false)[1]
+    local lines = vim.api.nvim_buf_get_lines(float_buf, 0, -1, false)
+    local new_text = table.concat(lines, " ")
 
     if new_text == "" then
       new_text = "  "
+    elseif new_text:find(",") or new_text:find('"') then
+      new_text = '"' .. new_text:gsub('"', '""') .. '"'
     end
 
     local line = vim.api.nvim_buf_get_lines(main_buf, lnum, lnum + 1, false)[1]
@@ -278,17 +283,14 @@ function M.edit_cell(isClearText)
     end)
   end
 
-  if cfg.enter_to_save then
-    vim.keymap.set({ "i", "n" }, "<CR>", save_and_close, { buffer = float_buf, silent = true })
-  end
-
   local function cmd_quit(opts)
     if opts and opts.bang then
       pcall(vim.api.nvim_win_close, float_win, true)
       return
     end
 
-    local current_text = vim.api.nvim_buf_get_lines(float_buf, 0, 1, false)[1] or ""
+    local lines = vim.api.nvim_buf_get_lines(float_buf, 0, -1, false)
+    local current_text = table.concat(lines, " ")
 
     if current_text ~= initial_text then
       vim.notify("E37: No write since last change (add ! to override)", vim.log.levels.ERROR)

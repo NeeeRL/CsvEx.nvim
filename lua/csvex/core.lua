@@ -174,12 +174,30 @@ function M.attach(bufnr)
       local clean_lines = {}
       local last_lnum = vim.api.nvim_buf_line_count(bufnr) - 1
 
+      local function unescape_csv_field(text)
+        if text == "  " or text == "  " or text == "  " then
+          return ""
+        end
+        if text:sub(1, 1) == '"' and text:sub(-1, -1) == '"' then
+          return text:sub(2, -2):gsub('""', '"')
+        end
+        return text
+      end
+
+      local function escape_csv_field(text)
+        if text == "" then
+          return ""
+        end
+        if text:find(",") or text:find('"') or text:find("\n") then
+          return '"' .. text:gsub('"', '""') .. '"'
+        end
+        return text
+      end
+
       for lnum = 0, last_lnum do
         vim.api.nvim_buf_clear_namespace(bufnr, ns_id, lnum, lnum + 1)
-        -- すでに計算済みのキャッシュを利用して重いパース処理をスキップ
         local fields = metrics.row_cache[lnum]
 
-        -- 万が一キャッシュがない場合のみパースする
         if not fields then
           local line = vim.api.nvim_buf_get_lines(bufnr, lnum, lnum + 1, false)[1] or ""
           fields = parser.parse_line(line)
@@ -187,18 +205,8 @@ function M.attach(bufnr)
 
         local mapped_fields = {}
         for _, field in ipairs(fields) do
-          local text = field.text
-
-          if text:sub(1, 1) == '"' and text:sub(-1, -1) == '"' then
-            text = text:sub(2, -2)
-          end
-
-          if text == "  " or text == "  " or text == "  " then
-            table.insert(mapped_fields, "")
-          else
-            -- 修正: 処理後の text を挿入するように変更
-            table.insert(mapped_fields, text)
-          end
+          local raw_text = unescape_csv_field(field.text)
+          table.insert(mapped_fields, escape_csv_field(raw_text))
         end
 
         table.insert(clean_lines, table.concat(mapped_fields, ","))
