@@ -39,6 +39,9 @@ function M.attach(bufnr)
   end
   vim.b[bufnr].csvex_attached = true
 
+  local old_undolevels = vim.bo[bufnr].undolevels
+  vim.bo[bufnr].undolevels = -1
+
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local padded_lines = {}
   local has_empty_cells = false
@@ -80,6 +83,9 @@ function M.attach(bufnr)
   require("csvex.config.sys_applier").apply_to_buffer(bufnr, require("csvex.config.defaults").sys)
 
   parser.normalize_buffer(bufnr)
+
+  vim.bo[bufnr].undolevels = old_undolevels
+  vim.bo[bufnr].modified = false
 
   metrics.compute_all(bufnr, parser)
 
